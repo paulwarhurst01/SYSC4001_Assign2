@@ -78,9 +78,7 @@ int main()
     }
 
     /* Set status array to zeros */
-    shared_stuff->status_array[0] = 0;
-    shared_stuff->status_array[1] = 0;
-    shared_stuff->status_array[2] = 0;
+    shared_stuff->needs_switch = 1;
 
     /* Fork 3 children */
     pid_t pid;
@@ -108,14 +106,13 @@ int main()
                 }
 
                 /* for loop that cycles through array */
-                int switched = 0;
-                for(int j = 0; j < 20; j++){
+                while(shared_stuff->needs_switch){
                     for(int i = lower_limit; i <= upper_limit; i++){
-                        if(i == 2 | i == 1){
+                        if(i == 2){
                             if(!semaphore_p(0)) exit(EXIT_FAILURE);
                             if(debug == 1) printf("Semaphore 0 blocked\n");
                         }
-                        if(i == 4 | i == 3){
+                        if(i == 4){
                             if(!semaphore_p(1)) exit(EXIT_FAILURE);
                             if(debug == 1) printf("Semaphore 1 blocked\n");
                         }
@@ -127,7 +124,6 @@ int main()
                             char temp = shared_stuff->filtered[i];
                             shared_stuff->filtered[i] = shared_stuff->filtered[i + 1];
                             shared_stuff->filtered[i+1] = temp;
-                            switched = 1;
                         }
                         if(i == 2 | i == 1){
                             if(!semaphore_v(0)) exit(EXIT_FAILURE);
@@ -138,18 +134,24 @@ int main()
                             if(debug == 1) printf("Semaphore 1 unblocked\n");
                         }
                     }
-                    if(switched == 1) shared_stuff->status_array[p] = 0;
-                    if(switched != 1) shared_stuff->status_array[p] = 1;
                 }
                 if(debug==1) printf("Child %d terminating...\n", p);
                 exit(EXIT_SUCCESS);
             default:
+                while(shared_stuff->needs_switch == 1){
+                    int switch_needed = 0;
+                    for(int i = 0; i < 7; i++){
+                        if((isalpha(shared_stuff->filtered[i]) == 0) && (isalpha(shared_stuff->filtered[i+1]) != 0)){
+                            switch_needed = 1;
+                            break;
+                        }
+                    }
+                    if (switch_needed == 0) shared_stuff->needs_switch = 0;
+                }
                 break;
         }
     }
 
-
-    sleep(2);
     printf("Final sorted array: ");
     print_array(shared_stuff->filtered);
     printf("\n");

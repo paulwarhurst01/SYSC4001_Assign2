@@ -6,5 +6,5 @@ struct shared_use_st{
        array managed by a process is in order
     */
     char filtered[7];
-    int status_array[3];
+    int needs_switch;
 };
